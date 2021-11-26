@@ -2,12 +2,18 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const expect = require('chai');
-const socket = require('socket.io');
+
+const app = express();
+
+const port = process.env.PORT || 3000;
+
+const server = require('http').createServer(app)
+const io = require('socket.io')(3002);
 
 const fccTestingRoutes = require('./routes/fcctesting.js');
 const runner = require('./test-runner.js');
 
-const app = express();
+
 
 app.use('/public', express.static(process.cwd() + '/public'));
 app.use('/assets', express.static(process.cwd() + '/assets'));
@@ -34,7 +40,7 @@ app.use(function(req, res, next) {
 const portNum = process.env.PORT || 3000;
 
 // Set up server and tests
-const server = app.listen(portNum, () => {
+server.listen(portNum, () => {
   console.log(`Listening on port ${portNum}`);
   if (process.env.NODE_ENV==='test') {
     console.log('Running Tests...');
@@ -48,5 +54,14 @@ const server = app.listen(portNum, () => {
     }, 1500);
   }
 });
+
+io.on("connection", socket => {
+  socket.send("Hello! You are not connected.")
+
+  socket.on("message", data =>{
+    console.log("MEssage from client")
+    console.log(data);
+  })
+})
 
 module.exports = app; // For testing
