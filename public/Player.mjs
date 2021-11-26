@@ -1,6 +1,6 @@
 class Player {
   constructor({x, y, score, id}) {
-
+    
   }
 
   movePlayer(dir, speed) {
