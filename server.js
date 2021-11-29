@@ -2,13 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const expect = require('chai');
+const { v4: uuid } = require('uuid');
 
 const app = express();
 
 const port = process.env.PORT || 3000;
 
 const server = require('http').createServer(app)
-const io = require('socket.io')(3002);
+const io = require('socket.io')(server);
 
 const fccTestingRoutes = require('./routes/fcctesting.js');
 const runner = require('./test-runner.js');
@@ -29,6 +30,10 @@ app.route('/')
 
 //For FCC testing purposes
 fccTestingRoutes(app);
+
+app.get('/getNewUserId', (req, res)=>{
+  res.send(uuid());
+})
     
 // 404 Not Found Middleware
 app.use(function(req, res, next) {
@@ -55,12 +60,28 @@ server.listen(portNum, () => {
   }
 });
 
-io.on("connection", socket => {
-  socket.send("Hello! You are not connected.")
+let collectibleCordinates = [Math.random(200) + 1, Math.random(200) + 1];
 
-  socket.on("message", data =>{
-    console.log("MEssage from client")
-    console.log(data);
+io.on("connection", socket => {  
+  let id = socket.handshake.query.id;
+  
+  io.to('gameroom').emit('updateCollectible', collectibleCordinates);
+  
+
+  socket.on('newPlayer', data=>{
+    console.log("new player", data)
+    io.to('gameroom').emit('addPlayer', data);
+  })
+
+  socket.on('updatePos', (data)=>{
+    console.log("Someone moved!!");
+    io.to('gameroom').send("SOMEONE MOVED");
+    io.to('gameroom').emit('changePlayerPos', data);
+  })
+
+  socket.on('disconnect', (data)=>{
+    console.log('Disconnection occured');
+    io.to('gameroom').emit('removePlayer', id);
   })
 })
 
